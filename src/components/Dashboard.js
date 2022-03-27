@@ -31,27 +31,51 @@ class Dashboard extends Component {
   // set up the initial loading state
   state = {
     loading: false,
+    focused: null,
   };
 
+  // Goal: when we click on a panel, the Dashboard shows only that panel
+  // Steps:
+  // 1. create 'setPanel(id)' that uses setState to set this.state.focused to panel.id
+  // 2. pass selectPanel function to Panel component
+  // 3.
+  selectPanel(id) {
+    this.setState({
+      focused: id,
+    });
+  }
+
   render() {
-    const dashboardClasses = classnames("dashboard");
+    const dashboardClasses = classnames("dashboard", {
+      // Include conditional CSS - use this class if dashboard is focused
+      "dashboard--focused": this.state.focused,
+    });
 
     // Show the Loading component when the state is loading
     if (this.state.loading) {
       return <Loading />;
     }
-    return (
-      <main className={dashboardClasses}>
-        {data.map((panel) => (
-          <Panel
-            key={panel.id}
-            id={panel.id}
-            label={panel.label}
-            value={panel.value}
-          />
-        ))}
-      </main>
-    );
+
+    const panels = data
+      // If this.state.focused is equal to a panel id, then only show that panel
+      // If null then show all panels
+      .filter(
+        (panel) =>
+          this.state.focused === null || this.state.focused === panel.id
+      )
+      // create an array of Panel components
+      .map((panel) => (
+        <Panel
+          key={panel.id}
+          id={panel.id}
+          label={panel.label}
+          value={panel.value}
+          // pass selectPanel to the Panel component
+          onSelect={this.selectPanel}
+        />
+      ));
+
+    return <main className={dashboardClasses}>{panels}</main>;
   }
 }
 
