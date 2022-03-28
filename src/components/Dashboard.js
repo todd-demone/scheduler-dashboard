@@ -9,6 +9,7 @@ import {
   getMostPopularDay,
   getInterviewsPerDay,
 } from "helpers/selectors";
+import { setInterview } from "helpers/reducers";
 
 // PANEL DATA STRUCTURE
 const data = [
@@ -84,6 +85,25 @@ class Dashboard extends Component {
       });
     });
 
+    // WEBSOCKET
+    // step 1. connect to the scheduler-api WebSocket server
+    this.socket = new WebSocket(process.env.REACT_APP_WEBSOCKET_URL);
+
+    // step 2. listen for WebSocket server messages and update state accordingly
+    // when we hear a message that shows booking or cancelling an interview,
+    // update the state using the setInterview helper
+    this.socket.onmessage = (event) => {
+      // convert string to JS data type
+      const data = JSON.parse(event.data);
+
+      // if the data is an object with the correct type, then update state
+      if (typeof data === "object" && data.type === "SET_INTERVIEW") {
+        this.setState((previousState) =>
+          setInterview(previousState, data.id, data.interview)
+        );
+      }
+    };
+
     // LOCAL STORAGE
     // https://javascript.info/localstorage
     // check DevTools -> Application tab -> Local Storage
@@ -108,6 +128,12 @@ class Dashboard extends Component {
       // use JSON.stringify to convert JS object value to JSON string
       localStorage.setItem("focused", JSON.stringify(this.state.focused));
     }
+  }
+
+  componentWillUnmount() {
+    // WEBSOCKET SERVER (CONTINUED)
+    // step 2. close the WebSocket server when the component unmounts
+    this.socket.close();
   }
 
   // EVENT HANDLER FOR CLICKS ON PANELS
@@ -172,7 +198,6 @@ class Dashboard extends Component {
       // note - we access the instance's state using this.state
       "dashboard--focused": this.state.focused,
     });
-    console.log(this.state);
     // Show the Loading component when the state is loading
     if (this.state.loading) {
       return <Loading />;
