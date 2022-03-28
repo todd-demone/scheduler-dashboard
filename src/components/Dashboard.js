@@ -1,40 +1,54 @@
 import React, { Component } from "react";
+import axios from "axios";
+import classnames from "classnames";
 import Loading from "./Loading";
 import Panel from "./Panel";
-import classnames from "classnames";
+import {
+  getTotalInterviews,
+  getLeastPopularTimeSlot,
+  getMostPopularDay,
+  getInterviewsPerDay,
+} from "helpers/selectors";
 
+// PANEL DATA STRUCTURE
 const data = [
   {
     id: 1,
     label: "Total Interviews",
-    value: 6,
+    // compute the value using a helper function and the state we load from the API
+    getValue: getTotalInterviews,
   },
   {
     id: 2,
     label: "Least Popular Time Slot",
-    value: "1pm",
+    getValue: getLeastPopularTimeSlot,
   },
   {
     id: 3,
     label: "Most Popular Day",
-    value: "Wednesday",
+    getValue: getMostPopularDay,
   },
   {
     id: 4,
     label: "Interviews Per Day",
-    value: "2.3",
+    getValue: getInterviewsPerDay,
   },
 ];
 
+// CLASS
 // We inherit behaviour from the React.Component class
 class Dashboard extends Component {
-  // We will show a Loading component when app is loading data
-  // set up the initial loading state
+  // STATE
   // notice we use the 'Class property' syntax to set up state
   // we don't use the constructor method
   state = {
-    loading: false,
+    // We will show a Loading component when app is loading data
+    // set up the initial loading state
+    loading: true,
     focused: null,
+    days: [],
+    appointments: {},
+    interviewers: {},
   };
 
   // LIFECYCLE METHODS
@@ -55,11 +69,26 @@ class Dashboard extends Component {
   // happens once
   // componentWillUnmount()
 
-  // LOCAL STORAGE
-  // https://javascript.info/localstorage
-  // check DevTools -> Application tab -> Local Storage
-
   componentDidMount() {
+    // 1. Request data from the api server and merge it into the existing state object
+    Promise.all([
+      axios.get("/api/days"),
+      axios.get("/api/appointments"),
+      axios.get("/api/interviewers"),
+    ]).then(([days, appointments, interviewers]) => {
+      this.setState({
+        loading: false,
+        days: days.data,
+        appointments: appointments.data,
+        interviewers: interviewers.data,
+      });
+    });
+
+    // LOCAL STORAGE
+    // https://javascript.info/localstorage
+    // check DevTools -> Application tab -> Local Storage
+
+    // 2. Check LocalStorage for focus value
     // After we render for the first time, check to see if LocalStorage contains focus state
     // use JSON.parse to convert JSON string to JS object value
     const focused = JSON.parse(localStorage.getItem("focused"));
@@ -81,6 +110,7 @@ class Dashboard extends Component {
     }
   }
 
+  // EVENT HANDLER FOR CLICKS ON PANELS
   // Goal: when we click on a panel, the Dashboard shows only that panel
   // Steps:
   // 1. create 'setPanel(id)' instance method that uses setState to set this.state.focused to either null or panel.id
@@ -134,6 +164,7 @@ class Dashboard extends Component {
     }));
   }
 
+  // RENDER
   // We must define a render method in our class (override Component's render method)
   render() {
     const dashboardClasses = classnames("dashboard", {
@@ -141,12 +172,13 @@ class Dashboard extends Component {
       // note - we access the instance's state using this.state
       "dashboard--focused": this.state.focused,
     });
-
+    console.log(this.state);
     // Show the Loading component when the state is loading
     if (this.state.loading) {
       return <Loading />;
     }
 
+    // PANELS ARRAY
     const panels = data
       // If this.state.focused is equal to a panel id, then only show that panel
       // If null then show all panels
@@ -158,9 +190,9 @@ class Dashboard extends Component {
       .map((panel) => (
         <Panel
           key={panel.id}
-          // id={panel.id}
           label={panel.label}
-          value={panel.value}
+          // pass the Panel the return value of getValue(this.state)
+          value={panel.getValue(this.state)}
           // Pass selectPanel to the Panel component
           // 'this' is defined as the Dashboard instance
           // because we use an arrow function here
