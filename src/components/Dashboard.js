@@ -37,6 +37,50 @@ class Dashboard extends Component {
     focused: null,
   };
 
+  // LIFECYCLE METHODS
+  // Lifecycle methods let us handle side effects
+  // Same goal as React Hooks API - ie useEffect()
+  // React.Component provides the lifecycle methods
+  // we can override them
+
+  // 1. mount phase
+  // happens once - when we create component instance
+  // constructor(), render(), componentDidMount()
+
+  // 2. update phase
+  // component that is mounted can be updated 0 or more times
+  // render(), componentDidUpdate()
+
+  // 3. unmount phase
+  // happens once
+  // componentWillUnmount()
+
+  // LOCAL STORAGE
+  // https://javascript.info/localstorage
+  // check DevTools -> Application tab -> Local Storage
+
+  componentDidMount() {
+    // After we render for the first time, check to see if LocalStorage contains focus state
+    // use JSON.parse to convert JSON string to JS object value
+    const focused = JSON.parse(localStorage.getItem("focused"));
+
+    // if LocalStorage has saved focus state, set the application's state to match it
+    if (focused) {
+      this.setState({ focused });
+    }
+  }
+
+  // listen for changes to the focus state
+  componentDidUpdate(previousProps, previousState) {
+    // note that componentDidUpdate has access to props/state from the previous update
+    // compare state from previous update to existing state
+    // if state has changed then update LocalStorage
+    if (previousState.focused !== this.state.focused) {
+      // use JSON.stringify to convert JS object value to JSON string
+      localStorage.setItem("focused", JSON.stringify(this.state.focused));
+    }
+  }
+
   // Goal: when we click on a panel, the Dashboard shows only that panel
   // Steps:
   // 1. create 'setPanel(id)' instance method that uses setState to set this.state.focused to either null or panel.id
